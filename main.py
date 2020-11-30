@@ -92,7 +92,7 @@ def write(filename, data, flat_directory):
         if i.filename == filename and i.is_last:
             file_exists=True
             i.is_last=False
-            if (len(data) +(len(convert_to_list(data))*filename) +get_file_size(flat_directory)) > MAX_DIRECTORY_SIZE:
+            if (len(data) +(len(convert_to_list(data))*len(filename)) +get_file_size(flat_directory)) > MAX_DIRECTORY_SIZE:
                 return 'Insufficient storage! Cannot write to file'
             # If file is not last in the list
             if file_index+1 != len(flat_directory):
@@ -203,7 +203,7 @@ def truncate(filename, reduce_to_size,flat_directory):
         next_chunks = flat_directory.copy()
         del previous_chunks[starting_index:len(flat_directory)]
         del next_chunks[0:last_index+1]
-        print(create(filename, previous_chunks))
+        create(filename, previous_chunks)
         print(write(filename,file_data[0:reduce_to_size],previous_chunks))
         previous_chunks.extend(next_chunks)
         return previous_chunks
@@ -232,11 +232,11 @@ def write_at(filename, write_at_index, data,flat_directory):
 
     file_data = read(filename,flat_directory)
     if len(file_data)==0:
-        print('\nCannot write at index in empty file!\n')
+        print('\nCannot write at index in empty file!\n')  
         return flat_directory
-    file_data = file_data[0:write_at_index] +data +file_data[write_at_index:len(file_data)]
+    file_data = file_data[0:write_at_index] + data + file_data[write_at_index:len(file_data)]
     if file_exists:
-        if (len(data) +(len(convert_to_list(data))*filename) +get_file_size(flat_directory)) > MAX_DIRECTORY_SIZE:
+        if (len(data) +(len(convert_to_list(data))*len(filename)) +get_file_size(flat_directory)) > MAX_DIRECTORY_SIZE:
             print( 'Insufficient storage! Cannot write to file')
             return flat_directory
         previous_chunks = []
@@ -245,7 +245,7 @@ def write_at(filename, write_at_index, data,flat_directory):
         next_chunks = flat_directory.copy()
         del previous_chunks[starting_index:len(flat_directory)]
         del next_chunks[0:last_index+1]
-        print(create(filename, previous_chunks))
+        create(filename, previous_chunks)
         print(write(filename,file_data,previous_chunks))
         previous_chunks.extend(next_chunks)
         return previous_chunks
@@ -274,9 +274,8 @@ def move_within_file(filename, from_index, to_index, size, flat_directory):
 
     file_data = read(filename, flat_directory)
     data_to_move = file_data[from_index:from_index+size]
-
     if to_index> from_index and from_index+size<to_index:
-        file_data = file_data[0:from_index] +file_data[from_index+size:to_index]+data_to_move+file_data[to_index:len(file_data)]
+        file_data = file_data[0:from_index] + file_data[from_index+size:to_index] + data_to_move + file_data[to_index:len(file_data)]
     elif from_index>to_index:
         file_data = file_data[0:to_index]+data_to_move+file_data[to_index:from_index]+file_data[from_index+size:len(file_data)]
     else:
@@ -306,13 +305,12 @@ def rename(filename, new_filename, flat_directory):
             new_filename_exists = True
             break
     if not new_filename_exists:
-        if (len(new_filename)  +get_file_size(flat_directory)) > MAX_DIRECTORY_SIZE:
+        if (len(new_filename)  + get_file_size(flat_directory)) > MAX_DIRECTORY_SIZE:
             return 'Insufficient storage! Cannot rename file'
         for f_chunk in flat_directory:
             if f_chunk.filename == filename:
                 f_chunk.filename = new_filename
                 file_exists=True
-
         if file_exists:
             return 'File renamed succesfully'
         else:
@@ -344,6 +342,7 @@ def show_help():
     print('show_memory_map')
     print('open')
     print('rename')
+    print('get_directory_size')
     print('help')
     print('exit')
 
