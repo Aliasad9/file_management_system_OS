@@ -4,8 +4,6 @@ import os
 
 flat_directory = []
 MAX_DIRECTORY_SIZE = 10000
-
-
 class File:
     def __init__(self, filename: str, data: str):
         self.filename = filename
