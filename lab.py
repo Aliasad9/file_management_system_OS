@@ -10,10 +10,10 @@ flat_directory = []
 MAX_DIRECTORY_SIZE = 10000
 
 class Command():
-	def __init__(self):
-		self.name = ''
-		self.filename = None
-		self.args = []
+    def __init__(self):
+        self.name = ''
+        self.filename = None
+        self.args = []
 
 class CustomThread(Thread):
     def __init__(self, group=None, target=None, name=None,
@@ -21,11 +21,9 @@ class CustomThread(Thread):
         Thread.__init__(self, group, target, name, args, kwargs)
         self._return = None
     def run(self):
-        threadLock.acquire()
-
         if self._target is not None:
             self._return = self._target(*self._args, **self._kwargs)
-        threadLock.release()
+
     def join(self, *args):
         Thread.join(self, *args)
         return self._return
@@ -379,6 +377,7 @@ def get_file_size(flat_directory):
     return bytes_count
 
 def thread_function(commands, file_ptr, flat_directory):
+    threadLock.acquire()
 
     for i in commands:
         if i.name.strip('\n') == 'show_memory_map':
@@ -391,22 +390,22 @@ def thread_function(commands, file_ptr, flat_directory):
                 print(data, file=file_ptr)
         elif i.name == 'read_from':
             starting_index=int(i.args[0])
-            size = int(i.args[1].strip('\n'))
+            size = int(i.args[1])
             read_from(i.filename.strip('\n'), starting_index, size, flat_directory, file_ptr)
         elif i.name == 'write':
-            data = str(i.args[0].strip('\n').strip("\""))
+            data = str(i.args[0].strip("\""))
             print(write(i.filename.strip('\n'), data, flat_directory), file=file_ptr)
         elif i.name == 'write_at':
             index = int(i.args[0])
-            data = str(i.args[1].strip("\n").strip("\""))
+            data = str(i.args[1].strip("\""))
             flat_directory = write_at(i.filename, index, data, flat_directory, file_ptr)
         elif i.name == 'truncate':
-            size = int(i.args[0].strip('\n'))
+            size = int(i.args[0])
             flat_directory = truncate(i.filename, size, flat_directory, file_ptr)
         elif i.name == 'move':
             from_index = int(i.args[0])
             to_index = int(i.args[1])
-            size = int(i.args[2].strip('\n'))
+            size = int(i.args[2])
             flat_directory = move_within_file(i.filename, from_index, to_index, size, flat_directory, file_ptr)
         elif i.name == 'delete':
             file = str(i.filename.strip("\n"))
@@ -416,13 +415,13 @@ def thread_function(commands, file_ptr, flat_directory):
             print(create(file, flat_directory), file=file_ptr)
         elif i.name == 'rename':
             old_name = str(i.filename.strip('\n'))
-            new_name = str(i.args[0].strip('\n'))
+            new_name = str(i.args[0])
             print(rename(old_name, new_name, flat_directory), file=file_ptr)
         elif i.name == 'get_directory_size':
             print(get_file_size(flat_directory), file=file_ptr)
         else:
             print(f'Invalid arguments: {i.name}, {i.filename}, {i.args}', file=file_ptr)
-
+    threadLock.release()
     return flat_directory
 
 def read_input_file(k:int):
@@ -459,16 +458,15 @@ def get_input_from_user(flat_directory):
     if all_files_exist:
         for i in range(1,no_of_threads+1):
             file_ptr = open(f'output_thread_{i}.txt','w')
-            command_list = read_input_file(no_of_threads)
+            command_list = read_input_file(i)
             thread = CustomThread(target=thread_function, args=(command_list, file_ptr, flat_directory))
             threads.append(thread)
             thread.start()
-            sleep(1)
-            file_ptr.close()
         for t in threads:
             val = t.join()
             if isinstance(val, list):
                 flat_directory = val
+
         return flat_directory
 
 def main(flat_directory):
