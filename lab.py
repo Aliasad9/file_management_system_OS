@@ -2,14 +2,39 @@ import pickle
 import json
 import os
 
+from threading import Thread, Lock
+from time import sleep
+
+threadLock = Lock()
 flat_directory = []
 MAX_DIRECTORY_SIZE = 10000
+
+class Command():
+	def __init__(self):
+		self.name = ''
+		self.filename = None
+		self.args = []
+
+class CustomThread(Thread):
+    def __init__(self, group=None, target=None, name=None,
+                 args=(), kwargs={}, Verbose=None):
+        Thread.__init__(self, group, target, name, args, kwargs)
+        self._return = None
+    def run(self):
+        threadLock.acquire()
+
+        if self._target is not None:
+            self._return = self._target(*self._args, **self._kwargs)
+        threadLock.release()
+    def join(self, *args):
+        Thread.join(self, *args)
+        return self._return
+
 class File:
     def __init__(self, filename: str, data: str):
         self.filename = filename
         self.data = data
         self.is_last = True
-
 
 def create(filename, flat_directory):
     if get_file_size(flat_directory) + len(filename) >= MAX_DIRECTORY_SIZE:
@@ -61,7 +86,7 @@ def delete(filename, flat_directory):
             file_exists = True
             break
     if not file_exists:
-        print('File not found')
+
         return 'File not found'
     # Finding the last index of the file
     for index, i in enumerate(flat_directory):
@@ -73,7 +98,7 @@ def delete(filename, flat_directory):
     return 'File deleted successfully'
 
 
-def read(filename, flat_directory):
+def read(filename, flat_directory, file_ptr):
     buffer = ''
     count = 0
     # Traversing the list and appending its text in the buffer
@@ -82,7 +107,7 @@ def read(filename, flat_directory):
             buffer += i.data
             count += 1
     if count == 0:
-        print('File not found')
+        print('File not found', file=file_ptr)
         return ''
     else:
         return buffer
@@ -98,18 +123,18 @@ def write(filename, data, flat_directory):
             if (len(data) + (len(convert_to_list(data)) * len(filename)) + get_file_size(
                     flat_directory)) > MAX_DIRECTORY_SIZE:
                 return 'Insufficient storage! Cannot write to file'
-            # If file is not last in the list
+            # If file is not last in the list 
             if file_index + 1 != len(flat_directory):
                 i.is_last = True
                 files_after_required_file = []
                 temporary = flat_directory
                 for to_delete_index in range(file_index + 1, len(temporary)):
                     files_after_required_file.append(temporary.pop(file_index + 1))
-                print(write(filename, data, temporary))
+                write(filename, data, temporary)
                 temporary.extend(files_after_required_file)
                 flat_directory = temporary
                 return 'File written successfully'
-            # If file is empty
+            # If file is empty 
             elif len(i.data) == 0:
                 if len(data) <= 32:
                     f = File(filename, data)
@@ -128,7 +153,7 @@ def write(filename, data, flat_directory):
                         flat_directory.append(f)
                 return 'File written successfully'
             # If file already has content in it
-            elif len(i.data) <= 32:
+            elif len(i.data) <= 32: 
                 diff = 32 - len(i.data)
                 i.data += data[0:diff]
                 if len(data[diff:len(data)]) == 0:
@@ -147,14 +172,14 @@ def write(filename, data, flat_directory):
         return 'File not found'
 
 
-def show_memory_map(flat_directory):
+def show_memory_map(flat_directory, file_ptr):
     mem_map = {}
     for index, f_chunk in enumerate(flat_directory):
         if f_chunk.filename not in mem_map:
             mem_map[f_chunk.filename] = {
                 'name': f_chunk.filename,
-                'chunk_no.s': [index, ],
-                'bytes': len(read(f_chunk.filename, flat_directory)) + len(f_chunk.filename)
+                'chunk_no.s': [index, ],  
+                'bytes': len(read(f_chunk.filename, flat_directory, file_ptr)) + len(f_chunk.filename)
             }
         else:
             chunk_list = mem_map[f_chunk.filename]['chunk_no.s']
@@ -165,24 +190,24 @@ def show_memory_map(flat_directory):
                 'bytes': mem_map[f_chunk.filename]['bytes'] + len(f_chunk.filename)
             }
     json_formatted_str = json.dumps(mem_map, indent=4)
-    print(json_formatted_str)
+    print(json_formatted_str, file=file_ptr)
 
 
-def read_from(filename, starting_index, size, flat_directory):
-    file_data = read(filename, flat_directory)
+def read_from(filename, starting_index, size, flat_directory, file_ptr):
+    file_data = read(filename, flat_directory, file_ptr)
     if len(file_data) == 0:
-        print('File is empty')
+        print('File is empty', file=file_ptr) 
     elif (starting_index + size) > len(file_data):
-        print(file_data[starting_index:starting_index + size])
-        print('\n\nCannot read further! ERROR: Invalid size provided.\n')
+        print(file_data[starting_index:starting_index + size], file=file_ptr)
+        print('\n\nCannot read further! ERROR: Invalid size provided.\n', file=file_ptr)
     else:
-        print(file_data[starting_index:starting_index + size])
+        print(file_data[starting_index:starting_index + size], file=file_ptr)
 
 
-def truncate(filename, reduce_to_size, flat_directory):
+def truncate(filename, reduce_to_size, flat_directory, file_ptr):
     starting_index = 0
     last_index = 0
-    file_exists = False
+    file_exists = False  
     # Finding the starting index of file
     for index, i in enumerate(flat_directory):
         if i.filename == filename:
@@ -190,7 +215,7 @@ def truncate(filename, reduce_to_size, flat_directory):
             file_exists = True
             break
     if not file_exists:
-        print('\nFile not found\n')
+        print('\nFile not found\n', file=file_ptr)
         return flat_directory
     # Finding the last index of the file
     for index, i in enumerate(flat_directory):
@@ -198,9 +223,9 @@ def truncate(filename, reduce_to_size, flat_directory):
             last_index = index
             break
 
-    file_data = read(filename, flat_directory)
+    file_data = read(filename, flat_directory, file_ptr)
     if len(file_data) < reduce_to_size:
-        print(f'\nCannot reduce size from {len(file_data)} to {reduce_to_size}\n')
+        print(f'\nCannot reduce size from {len(file_data)} to {reduce_to_size}\n', file=file_ptr)
         return flat_directory
     if file_exists:
         previous_chunks = flat_directory.copy()
@@ -208,15 +233,15 @@ def truncate(filename, reduce_to_size, flat_directory):
         del previous_chunks[starting_index:len(flat_directory)]
         del next_chunks[0:last_index + 1]
         create(filename, previous_chunks)
-        print(write(filename, file_data[0:reduce_to_size], previous_chunks))
+        print(write(filename, file_data[0:reduce_to_size], previous_chunks), file=file_ptr)
         previous_chunks.extend(next_chunks)
         return previous_chunks
     else:
-        print('File not found')
+        print('File not found', file=file_ptr)
         return flat_directory
 
 
-def write_at(filename, write_at_index, data, flat_directory):
+def write_at(filename, write_at_index, data, flat_directory, file_ptr):
     starting_index = 0
     last_index = 0
     file_exists = False
@@ -227,7 +252,7 @@ def write_at(filename, write_at_index, data, flat_directory):
             file_exists = True
             break
     if not file_exists:
-        print('\nFile not found!\n')
+        print('\nFile not found!\n', file=file_ptr)
         return flat_directory
     # Finding the last index of the file
     for index, i in enumerate(flat_directory):
@@ -235,15 +260,15 @@ def write_at(filename, write_at_index, data, flat_directory):
             last_index = index
             break
 
-    file_data = read(filename, flat_directory)
+    file_data = read(filename, flat_directory, file_ptr)
     if len(file_data) == 0:
-        print('\nCannot write at index in empty file!\n')
+        print('\nCannot write at index in empty file!\n', file=file_ptr)
         return flat_directory
     file_data = file_data[0:write_at_index] + data + file_data[write_at_index:len(file_data)]
     if file_exists:
         if (len(data) + (len(convert_to_list(data)) * len(filename)) + get_file_size(
                 flat_directory)) > MAX_DIRECTORY_SIZE:
-            print('Insufficient storage! Cannot write to file')
+            print('Insufficient storage! Cannot write to file', file=file_ptr)
             return flat_directory
 
         previous_chunks = flat_directory.copy()
@@ -251,15 +276,14 @@ def write_at(filename, write_at_index, data, flat_directory):
         del previous_chunks[starting_index:len(flat_directory)]
         del next_chunks[0:last_index + 1]
         create(filename, previous_chunks)
-        print(write(filename, file_data, previous_chunks))
+        print(write(filename, file_data, previous_chunks), file=file_ptr)
         previous_chunks.extend(next_chunks)
         return previous_chunks
     else:
-        print('\nFile not found\n')
+        print('\nFile not found\n', file=file_ptr)
         return flat_directory
 
-
-def move_within_file(filename, from_index, to_index, size, flat_directory):
+def move_within_file(filename, from_index, to_index, size, flat_directory, file_ptr):
     starting_index = 0
     last_index = 0
     file_exists = False
@@ -270,15 +294,14 @@ def move_within_file(filename, from_index, to_index, size, flat_directory):
             file_exists = True
             break
     if not file_exists:
-        print('File not found')
+        print('File not found', file=file_ptr)
         return flat_directory
     # Finding the last index of the file
     for index, i in enumerate(flat_directory):
         if i.filename == filename and i.is_last:
             last_index = index
             break
-
-    file_data = read(filename, flat_directory)
+    file_data = read(filename, flat_directory, file_ptr)
     data_to_move = file_data[from_index:from_index + size]
     if to_index > from_index and from_index + size < to_index:
         file_data = file_data[0:from_index] + file_data[from_index + size:to_index] + data_to_move + file_data[
@@ -289,20 +312,20 @@ def move_within_file(filename, from_index, to_index, size, flat_directory):
                                                                                             from_index + size:len(
                                                                                                 file_data)]
     else:
-        print('Unable to move data. Invalid parameters!')
+        print('Unable to move data. Invalid parameters!', file=file_ptr)
         return flat_directory
     if file_exists:
         previous_chunks = flat_directory.copy()
         next_chunks = flat_directory.copy()
         del previous_chunks[starting_index:len(flat_directory)]
         del next_chunks[0:last_index + 1]
-        print(create(filename, previous_chunks))
-        print(write(filename, file_data, previous_chunks))
+        create(filename, previous_chunks)
+        write(filename, file_data, previous_chunks)
         previous_chunks.extend(next_chunks)
-        print(f'\'{data_to_move}\' was moved successfully')
+        print(f'\'{data_to_move}\' was moved successfully', file=file_ptr)
         return previous_chunks
     else:
-        print('File not found')
+        print('File not found', file=file_ptr)
         return flat_directory
 
 
@@ -348,28 +371,6 @@ def deserialize_data():
         flat_directory = pickle.load(f)
         return flat_directory
 
-
-def show_help():
-    print('\ncreate')
-    print('delete')
-    print('show_memory_map')
-    print('open')
-    print('rename')
-    print('get_directory_size')
-    print('help')
-    print('exit')
-
-
-def show_help_open():
-    print('\nwrite')
-    print('write_at')
-    print('read')
-    print('read_from')
-    print('truncate')
-    print('move')
-    print('close')
-
-
 def get_file_size(flat_directory):
     bytes_count = 0
     for file in flat_directory:
@@ -377,76 +378,107 @@ def get_file_size(flat_directory):
         bytes_count += len(file.data)
     return bytes_count
 
+def thread_function(commands, file_ptr, flat_directory):
+
+    for i in commands:
+        if i.name.strip('\n') == 'show_memory_map':
+            show_memory_map(flat_directory, file_ptr)
+        elif i.name == 'read':
+            data = read(i.filename.strip('\n'), flat_directory, file_ptr)
+            if len(data) == 0:
+                print('File is empty', file=file_ptr)
+            else:
+                print(data, file=file_ptr)
+        elif i.name == 'read_from':
+            starting_index=int(i.args[0])
+            size = int(i.args[1].strip('\n'))
+            read_from(i.filename.strip('\n'), starting_index, size, flat_directory, file_ptr)
+        elif i.name == 'write':
+            data = str(i.args[0].strip('\n').strip("\""))
+            print(write(i.filename.strip('\n'), data, flat_directory), file=file_ptr)
+        elif i.name == 'write_at':
+            index = int(i.args[0])
+            data = str(i.args[1].strip("\n").strip("\""))
+            flat_directory = write_at(i.filename, index, data, flat_directory, file_ptr)
+        elif i.name == 'truncate':
+            size = int(i.args[0].strip('\n'))
+            flat_directory = truncate(i.filename, size, flat_directory, file_ptr)
+        elif i.name == 'move':
+            from_index = int(i.args[0])
+            to_index = int(i.args[1])
+            size = int(i.args[2].strip('\n'))
+            flat_directory = move_within_file(i.filename, from_index, to_index, size, flat_directory, file_ptr)
+        elif i.name == 'delete':
+            file = str(i.filename.strip("\n"))
+            print(delete(file, flat_directory), file=file_ptr)
+        elif i.name == 'create':
+            file = str(i.filename.strip("\n"))
+            print(create(file, flat_directory), file=file_ptr)
+        elif i.name == 'rename':
+            old_name = str(i.filename.strip('\n'))
+            new_name = str(i.args[0].strip('\n'))
+            print(rename(old_name, new_name, flat_directory), file=file_ptr)
+        elif i.name == 'get_directory_size':
+            print(get_file_size(flat_directory), file=file_ptr)
+        else:
+            print(f'Invalid arguments: {i.name}, {i.filename}, {i.args}', file=file_ptr)
+
+    return flat_directory
+
+def read_input_file(k:int):
+    command_list = []
+
+    file = open(f'input_thread_{k}.txt', 'r')
+    lines = file.readlines()
+    for line in lines:
+        commands = line.split(", ")
+        com = Command()
+        for index, i in enumerate(commands):
+            if index==0:
+                com.name=i
+            elif index==1:
+                com.filename=i
+            else:
+                i = i.strip('\n')
+                com.args.append(i)
+        command_list.append(com)
+    file.close()
+    return command_list
+
+def get_input_from_user(flat_directory):
+    threads=[]
+    all_files_exist = True
+    no_of_threads = int(input('Enter the no. of threads to be run: '))
+    for i in range(1, no_of_threads+1):
+        if os.path.exists(f'input_thread_{i}.txt'):
+            pass
+        else:
+            all_files_exist =False
+            print('Input files missing')
+            exit()
+    if all_files_exist:
+        for i in range(1,no_of_threads+1):
+            file_ptr = open(f'output_thread_{i}.txt','w')
+            command_list = read_input_file(no_of_threads)
+            thread = CustomThread(target=thread_function, args=(command_list, file_ptr, flat_directory))
+            threads.append(thread)
+            thread.start()
+            sleep(1)
+            file_ptr.close()
+        for t in threads:
+            val = t.join()
+            if isinstance(val, list):
+                flat_directory = val
+        return flat_directory
 
 def main(flat_directory):
     os.system('cls' if os.name == 'nt' else 'clear')
     if os.path.exists('filesys.dat'):
         flat_directory = deserialize_data()
-    print('**********File Management System**********\n\n')
-    print('Following commands are available:')
-    show_help()
-    while True:
-        command = str(input('\n$root./'))
-        if command.strip() == 'create':
-            file = str(input('Enter File name: '))
-            print(create(file, flat_directory))
-        elif command.strip() == 'delete':
-            file = str(input('Enter File name: '))
-            print(delete(file, flat_directory))
-        elif command.strip() == 'show_memory_map':
-            show_memory_map(flat_directory)
-        elif command.strip() == 'open':
-            file = str(input('Enter File name:'))
-            if check_file_exists(file, flat_directory):
-                show_help_open()
-                while True:
-                    open_command = str(input('\n$root./open/'))
-                    if open_command.strip() == 'write':
-                        data = str(input('Enter the text data you want to write in the file: '))
-                        print(write(file, data, flat_directory))
-                    elif open_command.strip() == 'write_at':
-                        index = int(input('Enter the index you want to write at:'))
-                        data = str(input('Enter the text data you want to write in the file: '))
-                        flat_directory = write_at(file, index, data, flat_directory)
-                    elif open_command.strip() == 'read':
-                        data = read(file, flat_directory)
-                        if len(data) == 0:
-                            print('File is empty')
-                        else:
-                            print(data)
-                    elif open_command.strip() == 'read_from':
-                        starting_index = int(input('Enter the index from where to start reading: '))
-                        size = int(input('Enter the size of string you want to read: '))
-                        read_from(file, starting_index, size, flat_directory)
-                    elif open_command.strip() == 'truncate':
-                        size = int(input('Enter the size of text after being truncated: '))
-                        flat_directory = truncate(file, size, flat_directory)
-                    elif open_command.strip() == 'move':
-                        from_index = int(input('Enter the starting index of string to move: '))
-                        to_index = int(input('Enter the index where the string is to be moved: '))
-                        size = int(input('Enter the size of string to move: '))
-                        flat_directory = move_within_file(file, from_index, to_index, size, flat_directory)
-                    elif open_command.strip() == 'help':
-                        show_help_open()
-                    elif open_command.strip() == 'close':
-                        break
-                    else:
-                        print('Invalid command! Type \'help\' for more info')
-            else:
-                print('File does not exist')
-        elif command.strip() == 'rename':
-            old_name = str(input('Enter the file name: '))
-            new_name = str(input('Enter the new name: '))
-            print(rename(old_name, new_name, flat_directory))
-        elif command.strip() == 'get_directory_size':
-            print(get_file_size(flat_directory))
-        elif command.strip() == 'help':
-            show_help()
-        elif command.strip() == 'exit':
-            serialize_data(flat_directory)
-            break
-        else:
-            print('Invalid command! Type \'help\' for more info')
+    print('\n**********File Management System**********\n\n')
+    flat_directory = get_input_from_user(flat_directory)
+    serialize_data(flat_directory)
 
 
 main(flat_directory)
+

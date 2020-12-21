@@ -1,0 +1,32 @@
+{
+    "file1.txt": {
+        "name": "file1.txt",
+        "chunk_no.s": [
+            0,
+            1,
+            2
+        ],
+        "bytes": 95
+    }
+}
+HE WHAYT'S UP BROHEY WHAT'S UP BROHEY WHAT'S UP BROHEY WHAT'S UP BRO
+YT'S
+File written successfully
+HE WHAYT'S UP BROHEY WHAT'S UP BROHEY WHAT'S UP BROHEY WHAT'S UP BROHEY WHAT'S UP BRO
+
+Cannot reduce size from 85 to 100
+
+HE WHAYT'S UP BROHEY WHAT'S UP BROHEY WHAT'S UP BROHEY WHAT'S UP BROHEY WHAT'S UP BRO
+' WH' was moved successfully
+HEAY WHT'S UP BROHEY WHAT'S UP BROHEY WHAT'S UP BROHEY WHAT'S UP BROHEY WHAT'S UP BRO
+{
+    "file1.txt": {
+        "name": "file1.txt",
+        "chunk_no.s": [
+            0,
+            1,
+            2
+        ],
+        "bytes": 112
+    }
+}

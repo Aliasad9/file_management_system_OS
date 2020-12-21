@@ -1,0 +1,12 @@
+show_memory_map
+create, file1.txt
+read, fil.txt
+read_from, fil.txt, 6, 4
+write, fil.txt, "HEY WHATS UP My Name is Ali. Testing 1 2 Check"
+read, fil.txt
+truncate, fil.txt, 10
+read, fil.txt
+move, fil.txt, 2, 7, 3
+read, fil.txt
+create, file1.txt
+show_memory_map
