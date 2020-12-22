@@ -1,5 +1,5 @@
 show_memory_map
-read, file1.txt
+read, fil.txt
 read_from, file1.txt, 6, 4
 write, file1.txt, "HEY WHAT'S UP BRO"
 read, file1.txt

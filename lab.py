@@ -422,6 +422,7 @@ def thread_function(commands, file_ptr, flat_directory):
         else:
             print(f'Invalid arguments: {i.name}, {i.filename}, {i.args}', file=file_ptr)
     threadLock.release()
+    file_ptr.close()
     return flat_directory
 
 def read_input_file(k:int):
@@ -456,6 +457,7 @@ def get_input_from_user(flat_directory):
             print('Input files missing')
             exit()
     if all_files_exist:
+        
         for i in range(1,no_of_threads+1):
             file_ptr = open(f'output_thread_{i}.txt','w')
             command_list = read_input_file(i)
@@ -466,6 +468,7 @@ def get_input_from_user(flat_directory):
             val = t.join()
             if isinstance(val, list):
                 flat_directory = val
+
 
         return flat_directory
 
