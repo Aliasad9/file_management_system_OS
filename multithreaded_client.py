@@ -17,7 +17,7 @@ def show_commands_manual():
           'truncate,{}<str: filename>, <int: final-size-after-truncation>\n'.format(8 * ' ', ) +
           'move,{}<str: filename>, <int: from-index>, <int: to-index>, <int: size-of-string>\n'.format(12 * ' ', ) +
           'show_memory_map\n' +
-          'get_directory_size')
+          'get_directory_size\n'+'exit\n\n')
 
 
 def send_my_info_to_server():

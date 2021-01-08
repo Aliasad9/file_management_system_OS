@@ -4,7 +4,7 @@ from lab import *
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-host = '127.0.0.1'
+host = ''
 port = 95
 thread_count = 0
 flat_directory = []
