@@ -6,8 +6,9 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 host = ''
 port = 95
-thread_count = 0
+thread_count = 1
 flat_directory = []
+all_connected_users = []
 
 try:
     server_socket.bind((host, port))
@@ -20,6 +21,15 @@ server_socket.listen(5)
 threads = []
 if os.path.exists('filesys.dat'):
     flat_directory = deserialize_data()
+
+
+def display_current_active_users():
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print("*************** Current Active Users ***************")
+    print("{:>16} {:>16} {:>16}".format("User number", "IP Address", "Port Number"))
+
+    for index, addr in enumerate(all_connected_users):
+        print("{:>16} {:>16} {:>16}".format(index + 1, addr[0], addr[1]))
 
 
 def convert_text_to_command(line):
@@ -36,7 +46,7 @@ def convert_text_to_command(line):
     return com
 
 
-def client_thread(connection, thread_no):
+def client_thread(connection, addr, thread_no):
     global flat_directory
     connection.sendall(str.encode("\n**********File Management Server**********\n\n"))
     username = connection.recv(1024).decode('utf-8')
@@ -44,27 +54,26 @@ def client_thread(connection, thread_no):
     connection.sendall(str.encode(welcome_msg))
 
     while True:
-        data = connection.recv(1024)
+        data = connection.recv(4096)
         reply = data.decode('utf-8')
         command = convert_text_to_command(reply)
         if not data:
             break
         if reply == 'exit':
-            print(f'Client: {thread_no}\'s socket closed')
+            all_connected_users.remove(addr)
+            display_current_active_users()
+            print(f'\n\nThread closed for connection: {addr[0]}:{addr[1]}')
             serialize_data(flat_directory)
             break
         flat_directory = thread_function([command], connection, flat_directory)
-        # connection.sendall(str.encode(reply))
-
     connection.close()
 
 
 while True:
     client, address = server_socket.accept()
-    print('Connected to ' + address[0] + ":" + str(address[1]))
-    thread = CustomThread(target=client_thread, args=(client, thread_count))
+    all_connected_users.append(address)
+    display_current_active_users()
+    thread = CustomThread(target=client_thread, args=(client, address, thread_count))
     threads.append(thread)
     thread.start()
-
     thread_count += 1
-    print('thread number: ' + str(thread_count))
