@@ -46,7 +46,7 @@ def convert_text_to_command(line):
     return com
 
 
-def client_thread(connection, addr, thread_no):
+def client_thread(connection, addr):
     global flat_directory
     connection.sendall(str.encode("\n**********File Management Server**********\n\n"))
     username = connection.recv(1024).decode('utf-8')
@@ -73,7 +73,7 @@ while True:
     client, address = server_socket.accept()
     all_connected_users.append(address)
     display_current_active_users()
-    thread = CustomThread(target=client_thread, args=(client, address, thread_count))
+    thread = CustomThread(target=client_thread, args=(client, address))
     threads.append(thread)
     thread.start()
     thread_count += 1

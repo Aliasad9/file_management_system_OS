@@ -121,7 +121,8 @@ def write(filename, data, flat_directory):
         if i.filename == filename and i.is_last:
             file_exists = True
             i.is_last = False
-            if (len(data) + (len(convert_to_list(data)) * len(filename)) + get_file_size(flat_directory)) > MAX_DIRECTORY_SIZE:
+            if (len(data) + (len(convert_to_list(data)) * len(filename)) + get_file_size(
+                    flat_directory)) > MAX_DIRECTORY_SIZE:
                 return 'Insufficient storage! Cannot write to file'
             # If file is not last in the list 
             if file_index + 1 != len(flat_directory):
@@ -387,44 +388,122 @@ def thread_function(commands, conn, flat_directory):
 
     for i in commands:
         if i.name.strip('\n') == 'show_memory_map' and i.filename is None and len(i.args) == 0:
-            show_memory_map(flat_directory, conn)
-        elif i.name == 'read' and i.filename is not None and len(i.args) == 0:
-            data = read(i.filename.strip('\n'), flat_directory, conn)
-            if len(data) == 0:
-                conn.sendall(str.encode('File is empty'))
-            else:
-                conn.sendall(str.encode(data))
-        elif i.name == 'read_from' and i.filename is not None and len(i.args) > 0:
-            starting_index = int(i.args[0])
-            size = int(i.args[1])
-            read_from(i.filename.strip('\n'), starting_index, size, flat_directory, conn)
-        elif i.name == 'write' and i.filename is not None and len(i.args) > 0:
-            data = str(i.args[0].strip("\""))
-            conn.sendall(str.encode(write(i.filename.strip('\n'), data, flat_directory)))
-        elif i.name == 'write_at' and i.filename is not None and len(i.args) > 0:
-            index = int(i.args[0])
-            data = str(i.args[1].strip("\""))
-            flat_directory = write_at(i.filename, index, data, flat_directory, conn)
-        elif i.name == 'truncate' and i.filename is not None and len(i.args) > 0:
-            size = int(i.args[0])
-            flat_directory = truncate(i.filename, size, flat_directory, conn)
-        elif i.name == 'move' and i.filename is not None and len(i.args) > 0:
-            from_index = int(i.args[0])
-            to_index = int(i.args[1])
-            size = int(i.args[2])
-            flat_directory = move_within_file(i.filename, from_index, to_index, size, flat_directory, conn)
-        elif i.name == 'delete' and i.filename is not None and len(i.args) == 0:
-            file = str(i.filename.strip("\n"))
-            conn.sendall(str.encode(delete(file, flat_directory)))
-        elif i.name == 'create' and i.filename is not None and len(i.args) == 0:
-            file = str(i.filename.strip("\n"))
-            conn.sendall(str.encode(create(file, flat_directory)))
-        elif i.name == 'rename' and i.filename is not None and len(i.args) > 0:
-            old_name = str(i.filename.strip('\n'))
-            new_name = str(i.args[0])
-            conn.sendall(str.encode(rename(old_name, new_name, flat_directory)))
+            try:
+                show_memory_map(flat_directory, conn)
+            except:
+                conn.sendall(str.encode('Invalid arguments!\n Try:\n\t show_memory_map'))
+        elif i.name == 'read' and i.filename is not None and i.filename != '' and len(i.args) == 0:
+            try:
+                data = read(i.filename.strip('\n'), flat_directory, conn)
+                if len(data) == 0:
+                    conn.sendall(str.encode('File is empty'))
+                else:
+                    conn.sendall(str.encode(data))
+            except:
+                conn.sendall(str.encode('Invalid arguments!\n Try:\n\tread, <string: filename>'))
+
+        elif i.name == 'read_from' and i.filename is not None and i.filename != '' and len(i.args) > 0:
+            try:
+                starting_index = int(i.args[0])
+                size = int(i.args[1])
+                read_from(i.filename.strip('\n'), starting_index, size, flat_directory, conn)
+            except:
+                conn.sendall(
+                    str.encode(
+                        'Invalid arguments!\n Try:\n\tread_from, <string: filename>, ' +
+                        '<int: starting-index>, <int: size>'
+                    )
+                )
+
+        elif i.name == 'write' and i.filename is not None and i.filename != '' and len(i.args) > 0:
+            try:
+                data = str(i.args[0].strip("\""))
+                conn.sendall(str.encode(write(i.filename.strip('\n'), data, flat_directory)))
+            except:
+                conn.sendall(
+                    str.encode(
+                        'Invalid arguments!\n Try:\n\tcreate, <string: filename>, "<string: text-data">'
+                    )
+                )
+
+        elif i.name == 'write_at' and i.filename is not None and i.filename != '' and len(i.args) > 0:
+            try:
+                index = int(i.args[0])
+                data = str(i.args[1].strip("\""))
+                flat_directory = write_at(i.filename, index, data, flat_directory, conn)
+            except:
+                conn.sendall(
+                    str.encode(
+                        'Invalid arguments!\n Try:\n\twrite_at, <string: filename>, ' +
+                        '<int: to-index>, "<string: text-data>"'
+                    )
+                )
+
+        elif i.name == 'truncate' and i.filename is not None and i.filename != '' and len(i.args) > 0:
+            try:
+                size = int(i.args[0])
+                flat_directory = truncate(i.filename, size, flat_directory, conn)
+            except:
+                conn.sendall(
+                    str.encode(
+                        'Invalid arguments!\n Try:\n\ttruncate, <string: filename>,' +
+                        ' <int: final-size-after-truncation>'
+                    )
+                )
+        elif i.name == 'move' and i.filename is not None and i.filename != '' and len(i.args) > 0:
+            try:
+                from_index = int(i.args[0])
+                to_index = int(i.args[1])
+                size = int(i.args[2])
+                flat_directory = move_within_file(i.filename, from_index, to_index, size, flat_directory, conn)
+            except:
+                conn.sendall(
+                    str.encode(
+                        'Invalid arguments!\n Try:\n\tmove, <string: filename>, ' +
+                        '<int: from-index>, <int: to-index>, <int: size-of-string>'
+                    )
+                )
+        elif i.name == 'delete' and i.filename is not None and i.filename != '' and len(i.args) == 0:
+            try:
+                file = str(i.filename.strip("\n"))
+                conn.sendall(str.encode(delete(file, flat_directory)))
+            except:
+                conn.sendall(
+                    str.encode(
+                        'Invalid arguments!\n Try:\n\tdelete, <string: filename>'
+                    )
+                )
+        elif i.name == 'create' and i.filename is not None and i.filename != '' and len(i.args) == 0:
+            try:
+                file = str(i.filename.strip("\n"))
+                conn.sendall(str.encode(create(file, flat_directory)))
+            except:
+                conn.sendall(
+                    str.encode(
+                        'Invalid arguments!\n Try:\n\tcreate, <string: filename>'
+                    )
+                )
+        elif i.name == 'rename' and i.filename is not None and i.filename != '' and len(i.args) > 0:
+            try:
+                old_name = str(i.filename.strip('\n'))
+                new_name = str(i.args[0])
+                conn.sendall(str.encode(rename(old_name, new_name, flat_directory)))
+            except:
+                conn.sendall(
+                    str.encode(
+                        'Invalid arguments!\n Try:\n\trename, <string: old-filename>,' +
+                        ' <string: new-filename>'
+                    )
+                )
         elif i.name == 'get_directory_size' and i.filename is None and len(i.args) == 0:
-            conn.sendall(str.encode(str(get_file_size(flat_directory))))
+            try:
+                conn.sendall(str.encode(str(get_file_size(flat_directory))))
+            except:
+                conn.sendall(
+                    str.encode(
+                        'Invalid arguments!\n Try:\n\tget_directory_size'
+                    )
+                )
         else:
             conn.sendall(str.encode(f'Invalid arguments: {i.name}, {i.filename}, {i.args}'))
     threadLock.release()
