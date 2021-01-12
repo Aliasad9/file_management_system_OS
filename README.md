@@ -16,11 +16,17 @@ It provides all the functions that are required to manage files in an OS. <br> F
 ## Instructions
 
 1. Check the ip of the the your own device by typing the following command in terminal/command prompt.
-> ipconfig
+```shell script
+ipconfig
+```
 2. Just open the terminal in the root directory, and run the server code: 
-> python multithreaded_server.py
+```shell script
+python multithreaded_server.py
+```
 3. Then run the client code on a device on the same network by the following command:
-> python multithreaded_client.py
+```shell script
+python multithreaded_client.py
+```
 4. Enter the IP of the server device when prompted for.
 5. All the available commands manual will be displayed when connection with server is established.
 6. Enter your name and a response will be received from server.
