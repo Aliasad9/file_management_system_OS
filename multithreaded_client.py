@@ -45,5 +45,10 @@ while data != 'exit':
     data = input('Enter your command: ')
     client_socket.send(str.encode(data))
     response = client_socket.recv(4096)
-    print(response.decode('utf-8'))
+    result = response.decode('utf-8')
+    if result == 'waiting':
+        print(client_socket.recv(4096).decode('utf-8'))
+        print(client_socket.recv(4096).decode('utf-8'))
+    else:
+        print(result)
 client_socket.close()
